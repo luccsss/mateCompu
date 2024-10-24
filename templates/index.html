@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrices Booleanas</title>
+    <style>
+        .matrix-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generador de Matrices y Componentes Conexas</h1>
+    
+    <form id="matrixForm">
+        <label for="n">Tamaño de la matriz (8-16):</label>
+        <input type="number" id="n" name="n" min="8" max="16" required>
+        
+        <label for="randomize">Generar matriz al azar:</label>
+        <input type="checkbox" id="randomize" name="randomize">
+        
+        <button type="button" id="generateMatrix">Generar Matriz</button>
+    </form>
+
+    <div id="matrixInputs" class="matrix-input">
+        <h2>Introduce los valores para la matriz:</h2>
+        <div id="matrixContainer"></div>
+        <button type="button" id="submitMatrix">Enviar Matriz</button>
+    </div>
+
+    <div>
+        <h2>Resultado:</h2>
+        <img id="resultImage" alt="Imagen del grafo generado" style="display:none;">
+    </div>
+
+    <script>
+        const matrixForm = document.getElementById('matrixForm');
+        const matrixContainer = document.getElementById('matrixContainer');
+        const matrixInputs = document.getElementById('matrixInputs');
+        const randomizeCheckbox = document.getElementById('randomize');
+        const resultImage = document.getElementById('resultImage');
+
+        document.getElementById('generateMatrix').addEventListener('click', function() {
+            const n = document.getElementById('n').value;
+            const randomize = randomizeCheckbox.checked;
+
+            if (randomize) {
+                // Si es aleatorio, enviar la solicitud directamente
+                fetch('/generate_matrix', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ n: n, randomize: true }),
+                })
+                .then(response => response.blob())
+                .then(imageBlob => {
+                    const imageObjectURL = URL.createObjectURL(imageBlob);
+                    resultImage.src = imageObjectURL;
+                    resultImage.style.display = 'block';
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+            } else {
+                // Si no es aleatorio, mostrar el formulario para ingresar manualmente la matriz
+                createMatrixInputs(n);
+            }
+        });
+
+        function createMatrixInputs(n) {
+            matrixContainer.innerHTML = ''; // Limpiar la matriz previa
+            for (let i = 0; i < n; i++) {
+                const row = document.createElement('div');
+                row.className = 'matrix-row';
+                for (let j = 0; j < n; j++) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = 0;
+                    input.max = 1;
+                    input.value = 0;
+                    input.className = 'matrix-input-cell';
+                    input.dataset.row = i;
+                    input.dataset.col = j;
+                    row.appendChild(input);
+                }
+                matrixContainer.appendChild(row);
+            }
+            matrixInputs.style.display = 'block';
+        }
+
+        document.getElementById('submitMatrix').addEventListener('click', function() {
+            const n = document.getElementById('n').value;
+            const matrix = [];
+
+            for (let i = 0; i < n; i++) {
+                const row = [];
+                const rowElements = matrixContainer.querySelectorAll(`.matrix-row:nth-child(${i + 1}) .matrix-input-cell`);
+                rowElements.forEach((cell) => {
+                    row.push(parseInt(cell.value));
+                });
+                matrix.push(row);
+            }
+
+            // Enviar la matriz manual al backend
+            fetch('/generate_matrix', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ n: n, randomize: false, matrix: matrix }),
+            })
+            .then(response => response.blob())
+            .then(imageBlob => {
+                const imageObjectURL = URL.createObjectURL(imageBlob);
+                resultImage.src = imageObjectURL;
+                resultImage.style.display = 'block';
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
